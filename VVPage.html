@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>V-page</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg0: #0a0c10; --bg1: #111318; --bg2: #171a22;
+            --bg3: #1e2130; --bg4: #272b3a; --bdr: #2e3248;
+            --t1: #e4e8f1; --t2: #94a3b8; --t3: #64748b;
+            --blue: #3b82f6; --green: #22c55e; --red: #ef4444; --yellow: #f59e0b;
+        }
+
+        * { box-sizing: border-box; }
+        html, body { height: 100%; margin: 0; overflow: hidden; font-family: 'Inter', sans-serif; background: var(--bg0); color: var(--t1); }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-thumb { background: var(--bdr); border-radius: 3px; }
+
+        /* Bulma 深色覆盖 */
+        .navbar, .menu-label, .card-header, .modal-card-head, .modal-card-body, .modal-card-foot { background: var(--bg1) !important; }
+        .menu-label { color: var(--t3); text-transform: none; letter-spacing: 0; }
+        .menu-list a { color: var(--t2); border-radius: 6px; font-size: 13px; }
+        .menu-list a:hover { background: var(--bg4); }
+        .menu-list a.is-active { background: var(--bg3); color: var(--t1); }
+        .message-header { background: var(--bg3) !important; border: none !important; padding: 8px 12px !important; }
+        .message-body { background: var(--bg2); border: 1px solid var(--bdr); border-top: none; padding: 4px 16px 16px !important; border-radius: 0 0 12px 12px !important; }
+        .message.is-user .message-body { background: #162740; border-color: #1e3a5f; }
+        .message.is-ai .message-body { background: var(--bg2); }
+        .message { border-radius: 12px !important; overflow: hidden; animation: mIn 0.3s ease; }
+        @keyframes mIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .modal-card-head, .modal-card-body, .modal-card-foot { border-color: var(--bdr); }
+        .modal-card-title { color: var(--t1); }
+        .modal-card { border-radius: 16px; overflow: hidden; }
+        .modal-background { background: rgba(0,0,0,0.75); }
+        .input, .textarea { background: var(--bg0); border-color: var(--bdr); color: var(--t1); }
+        .input:focus, .textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 2px rgba(59,130,246,0.15); }
+        .input::placeholder, .textarea::placeholder { color: var(--t3); }
+        .label { color: var(--t2); font-size: 13px; }
+        .notification { background: var(--bg3); border: 1px solid var(--bdr); }
+        .help { color: var(--t3); }
+        .tag { background: var(--bg3) !important; color: var(--t2) !important; }
+        .tag.is-info { background: #162740 !important; color: #7dd3fc !important; }
+        .tag.is-dark { background: var(--bg4) !important; }
+        .tag.is-success { background: #0c1f12 !important; color: var(--green) !important; }
+        .tag.is-danger { background: #2d1215 !important; color: var(--red) !important; }
+        .tag.is-link { background: #162740 !important; color: var(--blue) !important; }
+        code { background: rgba(100,116,139,0.2); padding: 1px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 0.88em; color: var(--t1); }
+
+        /* 侧边栏 */
+        .sidebar { width: 280px; min-width: 280px; background: var(--bg1); border-right: 1px solid var(--bdr); display: flex; flex-direction: column; z-index: 30; transition: margin-left 0.3s; }
+        .sidebar.is-hidden { margin-left: -280px; }
+        .sidebar .menu-list li a { display: flex; justify-content: space-between; align-items: center; }
+        .sidebar .menu-list li a .delete { opacity: 0; transition: opacity 0.15s; }
+        .sidebar .menu-list li a:hover .delete { opacity: 1; }
+
+        /* 打字动画 */
+        .dots { display: flex; gap: 5px; padding: 8px 0; }
+        .dots i { width: 7px; height: 7px; background: var(--t3); border-radius: 50%; display: block; animation: dotB 1.4s infinite; }
+        .dots i:nth-child(2) { animation-delay: 0.2s; }
+        .dots i:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes dotB { 0%,60%,100%{transform:translateY(0);opacity:0.3;} 30%{transform:translateY(-6px);opacity:1;} }
+
+        /* 状态指示灯 */
+        .sdot { width: 7px; height: 7px; border-radius: 50%; background: var(--t3); display: inline-block; }
+        .sdot.on { background: var(--green); box-shadow: 0 0 6px rgba(34,197,94,0.4); }
+        .sdot.off { background: var(--red); box-shadow: 0 0 6px rgba(239,68,68,0.4); }
+        .sdot.gen { background: var(--yellow); box-shadow: 0 0 6px rgba(245,158,11,0.4); animation: blink 1.5s infinite; }
+        @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+
+        /* 代码块复制 */
+        .ccp { position: absolute; top: 8px; right: 8px; opacity: 0; transition: opacity 0.15s; z-index: 5; }
+        .mc pre:hover .ccp { opacity: 1; }
+
+        /* 消息内容 */
+        .mc { font-size: 14.5px; line-height: 1.75; color: #f0f2f5; }
+        .mc p { margin: 0 0 0.7em; }
+        .mc p:last-child { margin-bottom: 0; }
+        .mc pre { background: #0c0e14 !important; border: 1px solid var(--bdr); border-radius: 8px; padding: 14px; overflow-x: auto; margin: 12px 0; position: relative; }
+        .mc pre code { font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.5; background: transparent; padding: 0; }
+        .mc blockquote { border-left: 3px solid var(--blue); padding-left: 14px; margin: 12px 0; color: var(--t2); }
+        .mc ul, .mc ol { padding-left: 1.5em; margin: 8px 0; }
+        .mc li { margin-bottom: 4px; }
+        .mc a { color: var(--blue); }
+        .mc table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13.5px; }
+        .mc th, .mc td { border: 1px solid var(--bdr); padding: 8px 12px; text-align: left; }
+        .mc th { background: var(--bg4); font-weight: 600; }
+        .mc td { background: var(--bg3); }
+
+        /* 消息操作 */
+        .m-acts { display: flex; gap: 6px; margin-top: 10px; opacity: 0; transition: opacity 0.15s; }
+        .message:hover .m-acts { opacity: 1; }
+
+        /* 回到底部 */
+        .scroll-btn { position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%); z-index: 10; box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
+
+        /* Toast */
+        .toast-box { position: fixed; bottom: 80px; right: 20px; z-index: 100; }
+
+        /* Range */
+        input[type="range"] { width: 100%; -webkit-appearance: none; height: 6px; background: var(--bg3); border-radius: 3px; outline: none; margin: 4px 0; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; background: var(--blue); border-radius: 50%; cursor: pointer; }
+        input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; background: var(--blue); border-radius: 50%; cursor: pointer; border: none; }
+
+        /* 输入区 */
+        .input-row { display: flex; align-items: stretch; background: var(--bg1); border: 1px solid var(--bdr); border-radius: 12px; padding: 4px; transition: border-color 0.2s, box-shadow 0.2s; }
+        .input-row:focus-within { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(59,130,246,0.12); }
+        .input-row textarea { flex: 1; background: transparent; border: none; box-shadow: none; color: var(--t1); font-family: inherit; font-size: 14.5px; line-height: 1.5; padding: 10px 12px; resize: none; outline: none; max-height: 180px; min-height: 22px; }
+        .input-row textarea::placeholder { color: var(--t3); }
+        .send-btn { width: 40px; min-width: 40px; border-radius: 8px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; margin: 2px; background: var(--blue); color: #fff; transition: background 0.15s; }
+        .send-btn:hover { background: #2563eb; }
+        .send-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+        .send-btn.stop { background: var(--red); }
+        .send-btn.stop:hover { background: #dc2626; }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .sidebar { position: fixed; left: 0; top: 0; bottom: 0; z-index: 40; box-shadow: 4px 0 20px rgba(0,0,0,0.4); }
+            .sidebar.is-hidden { margin-left: -280px; }
+        }
+    </style>
+</head>
+<body>
+
+<div x-data="app()" x-init="boot()" class="columns is-gapless" style="height:100vh;margin:0;overflow:hidden;">
+
+    <!-- ===== 侧边栏 ===== -->
+    <aside class="sidebar column is-narrow" :class="{ 'is-hidden': !showSB }">
+        <div class="level is-mobile p-4" style="border-bottom:1px solid var(--bdr);">
+            <span class="has-text-weight-semibold" style="font-size:15px;">💬 对话</span>
+            <button class="delete is-small" @click="showSB=false"></button>
+        </div>
+        <div class="p-3">
+            <button class="button is-link is-fullwidth is-small is-rounded" @click="newChat()">＋ 新对话</button>
+        </div>
+        <div class="menu p-3" style="flex:1;overflow-y:auto;">
+            <p class="menu-label" x-show="convs.length > 0">对话列表</p>
+            <ul class="menu-list">
+                <li x-show="convs.length===0" class="has-text-centered has-text-grey-light pt-6" style="font-size:13px;">暂无对话</li>
+                <template x-for="c in convs" :key="c.id">
+                    <li>
+                        <a :class="{ 'is-active': curId===c.id }" @click="openChat(c.id)">
+                            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;" x-text="c.title||'新对话'"></span>
+                            <button class="delete is-small" @click.stop="delChat(c.id)"></button>
+                        </a>
+                    </li>
+                </template>
+            </ul>
+        </div>
+        <div class="p-3" style="border-top:1px solid var(--bdr);">
+            <button class="button is-fullwidth is-small is-outlined is-rounded" style="background:var(--bg4)!important;color:var(--t2)!important;border-color:var(--bdr)!important;" @click="showModal=true">⚙ 参数设置</button>
+        </div>
+    </aside>
+
+    <!-- ===== 主区域 ===== -->
+    <main class="column" style="display:flex;flex-direction:column;position:relative;background:var(--bg0);overflow:hidden;">
+
+        <!-- 顶栏 -->
+        <nav class="level is-mobile px-4 py-3" style="background:var(--bg1);border-bottom:1px solid var(--bdr);margin:0;min-height:54px;flex-wrap:wrap;gap:6px;">
+            <div class="level-left">
+                <button class="button is-ghost is-small mr-3" @click="showSB=!showSB" style="font-size:16px;padding:4px 8px;">☰</button>
+                <span class="has-text-weight-medium" x-text="title||'V Page'"></span>
+            </div>
+            <div class="level-right is-flex is-align-items-center" style="gap:8px;">
+                <div class="tags has-addons mb-0">
+                    <span class="tag mb-0 is-rounded" style="border-radius:6px 0 0 6px;">
+                        <span class="sdot" :class="{ 'on': srvOk&&!gen, 'off': !srvOk, 'gen': gen }"></span>
+                    </span>
+                    <span class="tag is-dark mb-0 is-rounded" style="border-radius:0 6px 6px 0;" x-text="gen?'生成中...':(srvOk?'在线':'离线')"></span>
+                </div>
+                <button class="button is-small is-outlined is-rounded" style="background:var(--bg4)!important;color:var(--t2)!important;border-color:var(--bdr)!important;" @click="doExport()">⬇ 导出</button>
+                <button class="button is-small is-outlined is-rounded" style="background:var(--bg4)!important;color:var(--t2)!important;border-color:var(--bdr)!important;" @click="doClear()">🗑 清空</button>
+            </div>
+        </nav>
+
+        <!-- 消息区 -->
+        <div style="flex:1;overflow-y:auto;overflow-x:hidden;" x-ref="msgsBox" @scroll="onScroll()">
+
+            <!-- 欢迎 -->
+            <section class="hero is-fullheight-with-navbar" x-show="msgs.length===0 && !gen" style="background:var(--bg0);">
+                <div class="hero-body is-justify-content-center">
+                    <div class="has-text-centered">
+                        <p class="title is-1">V*V</p>
+                        <h2 class="title is-4 has-text-light">V-V Page</h2>
+                        <p class="subtitle is-6 has-text-grey">开始一段新的对话，输入你的问题，AI 将为你解答。</p>
+                    </div>
+                </div>
+            </section>
+
+            <div style="max-width:820px;margin:0 auto;padding:24px 20px 100px;">
+
+                <!-- 历史消息 -->
+                <template x-for="(m,i) in msgs" :key="i">
+                    <article class="message mb-4" :class="m.role==='user'?'is-info':'is-dark is-ai'">
+                        <div class="message-header">
+                            <span class="tag mb-0 is-rounded" :class="m.role==='user'?'is-info':'is-dark'" x-text="m.role==='user'?'你':'AI'"></span>
+                        </div>
+                        <div class="message-body">
+                            <div class="mc" x-html="md(m.content)"></div>
+                            <div class="m-acts">
+                                <span class="tag is-small is-rounded is-clickable" :class="copyI===i?'is-success':'is-dark'" @click="doCopy(m.content,i)" x-text="copyI===i?'✓ 已复制':'📋 复制'"></span>
+                                <template x-if="m.role==='assistant'">
+                                    <span class="tag is-small is-rounded is-dark is-clickable" @click="reGen(i)">🔄 重新生成</span>
+                                </template>
+                            </div>
+                        </div>
+                    </article>
+                </template>
+
+                <!-- 等待动画 -->
+                <template x-if="gen && !sAns">
+                    <article class="message is-dark is-ai">
+                        <div class="message-header"><span class="tag is-dark is-rounded">AI</span></div>
+                        <div class="message-body"><div class="dots"><i></i><i></i><i></i></div></div>
+                    </article>
+                </template>
+
+                <!-- 流式输出 -->
+                <template x-if="gen && sAns">
+                    <article class="message is-dark is-ai">
+                        <div class="message-header"><span class="tag is-dark is-rounded">AI</span></div>
+                        <div class="message-body">
+                            <div class="mc" x-html="md(sAns)"></div>
+                        </div>
+                    </article>
+                </template>
+            </div>
+        </div>
+
+        <!-- 回到底部 -->
+        <button class="button is-rounded is-dark scroll-btn" x-show="showBot" @click="goBot(true)">↓</button>
+
+        <!-- 输入区 -->
+        <div class="p-4" style="background:var(--bg0);">
+            <div style="max-width:820px;margin:0 auto;">
+                <div class="input-row">
+                    <textarea x-ref="inp" x-model="txt"
+                              @keydown.enter.prevent="onEnter($event)"
+                              @input="autoH($event.target)"
+                              placeholder="输入消息... (Enter 发送, Shift+Enter 换行)"
+                              rows="1" :disabled="gen"></textarea>
+                    <button class="send-btn" :class="{ 'stop': gen }"
+                            @click="gen ? stop() : send()"
+                            :disabled="!gen && !txt.trim()">
+                        <span x-text="gen ? '■' : '➤'"></span>
+                    </button>
+                </div>
+                <p class="help has-text-centered mt-2">
+                    <span class="tag is-small is-rounded">Enter</span> 发送 ·
+                    <span class="tag is-small is-rounded">Shift+Enter</span> 换行 ·
+                    <span style="color:var(--blue);" x-text="api"></span>
+                </p>
+            </div>
+        </div>
+    </main>
+
+    <!-- ===== 设置弹窗 ===== -->
+    <div class="modal" :class="{ 'is-active': showModal }">
+        <div class="modal-background" @click="showModal=false"></div>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title">⚙ 参数设置</p>
+                <button class="delete" @click="showModal=false"></button>
+            </header>
+            <section class="modal-card-body">
+                <div class="field">
+                    <label class="label">API 地址</label>
+                    <div class="control"><input class="input is-family-monospace is-rounded" type="text" x-model="api" placeholder="http://127.0.0.1:8080"></div>
+                </div>
+                <div class="field">
+                    <label class="label">系统提示词</label>
+                    <div class="control"><textarea class="textarea is-rounded" x-model="sys" rows="3" placeholder="你是一个有用的AI助手。"></textarea></div>
+                </div>
+                <div class="field">
+                    <label class="label">温度 Temperature: <code x-text="temp.toFixed(1)"></code></label>
+                    <input type="range" min="0" max="2" step="0.1" x-model.number="temp">
+                </div>
+                <div class="field">
+                    <label class="label">最大生成长度: <code x-text="maxT+' tokens'"></code></label>
+                    <input type="range" min="256" max="8192" step="256" x-model.number="maxT">
+                </div>
+                <div class="field">
+                    <label class="label">Top P: <code x-text="topP.toFixed(2)"></code></label>
+                    <input type="range" min="0" max="1" step="0.05" x-model.number="topP">
+                </div>
+                <div class="field">
+                    <label class="label">重复惩罚: <code x-text="repP.toFixed(2)"></code></label>
+                    <input type="range" min="0.5" max="2" step="0.05" x-model.number="repP">
+                </div>
+                <div class="field">
+                    <label class="label">上下文窗口: <code x-text="ctx+' 条'"></code></label>
+                    <input type="range" min="1" max="50" step="1" x-model.number="ctx">
+                </div>
+            </section>
+            <footer class="modal-card-foot">
+                <button class="button is-rounded" style="background:var(--bg4)!important;color:var(--t2)!important;border-color:var(--bdr)!important;" @click="showModal=false">关闭</button>
+                <button class="button is-link is-rounded" @click="saveAll();showModal=false;">保存设置</button>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast-box">
+        <template x-for="t in toasts" :key="t.id">
+            <div class="notification is-dark is-rounded" x-text="t.msg" style="margin-bottom:8px;animation:mIn 0.3s ease;"></div>
+        </template>
+    </div>
+</div>
+
+<!-- JS 库 -->
+<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.3/dist/cdn.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/core.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/javascript.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/python.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/bash.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/json.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/css.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/xml.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/typescript.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/rust.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/go.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/cpp.min.js"></script>
+
+<script>
+function app() {
+    return {
+        showSB: true, showModal: false, showBot: false, copyI: -1, toasts: [],
+        api: 'http://127.0.0.1:8080', srvOk: false,
+        gen: false, sAns: '', ctrl: null,
+        convs: [], curId: null, msgs: [], txt: '',
+        sys: '你是一个有用的AI助手。', temp: 0.7, maxT: 2048, topP: 0.9, repP: 1.1, ctx: 20,
+
+        get title() { var c = this.convs.find(function(x) { return x.id === this.curId; }.bind(this)); return c ? c.title : ''; },
+
+        boot: function() {
+            var self = this;
+            self.loadSet(); self.loadConv(); self.ping();
+            setInterval(function() { self.ping(); }, 30000);
+            marked.setOptions({
+                highlight: function(code, lang) {
+                    if (lang && hljs.getLanguage(lang)) { try { return hljs.highlight(code, { language: lang }).value; } catch(e) {} }
+                    try { return hljs.highlightAuto(code).value; } catch(e) {}
+                    return code;
+                }, breaks: true, gfm: true
+            });
+            self.$nextTick(function() { if (self.$refs.inp) self.$refs.inp.focus(); });
+            if (window.innerWidth < 768) self.showSB = false;
+        },
+
+        ping: function() {
+            var self = this;
+            fetch(self.api + '/health', { signal: AbortSignal.timeout(3000) })
+                .then(function(r) { self.srvOk = r.ok; })
+                .catch(function() {
+                    fetch(self.api + '/v1/models', { signal: AbortSignal.timeout(3000) })
+                        .then(function(r2) { self.srvOk = r2.ok; })
+                        .catch(function() { self.srvOk = false; });
+                });
+        },
+
+        loadSet: function() {
+            try { var s = JSON.parse(localStorage.getItem('rwkv_s') || '{}');
+                ['api','sys','temp','maxT','topP','repP','ctx'].forEach(function(k) { if (s[k] !== undefined) this[k] = s[k]; }.bind(this));
+            } catch(e) {}
+        },
+        saveAll: function() {
+            var d = {}; ['api','sys','temp','maxT','topP','repP','ctx'].forEach(function(k) { d[k] = this[k]; }.bind(this));
+            localStorage.setItem('rwkv_s', JSON.stringify(d)); this.toast('设置已保存'); this.ping();
+        },
+
+        loadConv: function() {
+            try { this.convs = JSON.parse(localStorage.getItem('rwkv_c') || '[]'); if (this.convs.length > 0) this.openChat(this.convs[0].id); } catch(e) { this.convs = []; }
+        },
+        saveConv: function() { localStorage.setItem('rwkv_c', JSON.stringify(this.convs)); },
+
+        newChat: function() {
+            var id = 'c' + Date.now();
+            this.convs.unshift({ id: id, title: '新对话', messages: [], ts: Date.now() });
+            this.curId = id; this.msgs = this.convs[0].messages; this.saveConv(); this.txt = '';
+            this.$nextTick(function() { if (this.$refs.inp) this.$refs.inp.focus(); }.bind(this));
+        },
+        openChat: function(id) {
+            this.curId = id; var c = this.convs.find(function(x) { return x.id === id; });
+            if (c) { this.msgs = c.messages; this.$nextTick(function() { this.goBot(false); }.bind(this)); }
+            if (window.innerWidth < 768) this.showSB = false;
+        },
+        delChat: function(id) {
+            this.convs = this.convs.filter(function(c) { return c.id !== id; });
+            if (this.curId === id) { if (this.convs.length > 0) this.openChat(this.convs[0].id); else { this.curId = null; this.msgs = []; } }
+            this.saveConv();
+        },
+        doClear: function() {
+            if (this.msgs.length === 0) return; if (!confirm('确定清空当前对话？')) return;
+            var c = this.convs.find(function(x) { return x.id === this.curId; }.bind(this));
+            if (c) { c.messages = []; c.title = '新对话'; this.msgs = c.messages; this.saveConv(); }
+        },
+
+        onEnter: function(e) {
+            if (e.shiftKey) { var ta = this.$refs.inp; var s = ta.selectionStart; this.txt = this.txt.substring(0, s) + '\n' + this.txt.substring(ta.selectionEnd); this.$nextTick(function() { ta.selectionStart = ta.selectionEnd = s + 1; }); }
+            else { if (this.gen) this.stop(); else this.send(); }
+        },
+
+        send: function() {
+            var text = this.txt.trim(); if (!text || this.gen) return;
+            if (!this.curId) this.newChat();
+            var c = this.convs.find(function(x) { return x.id === this.curId; }.bind(this)); if (!c) return;
+            c.messages.push({ role: 'user', content: text }); this.msgs = c.messages; this.txt = '';
+            if (c.messages.length === 1) c.title = text.substring(0, 30) + (text.length > 30 ? '...' : '');
+            this.saveConv(); this.$nextTick(function() { this.goBot(true); }.bind(this));
+            var apiMsgs = []; if (this.sys.trim()) apiMsgs.push({ role: 'system', content: this.sys.trim() });
+            c.messages.slice(-this.ctx).forEach(function(m) { apiMsgs.push({ role: m.role, content: m.content }); });
+            this.stream(apiMsgs, c);
+        },
+
+        stream: function(messages, conv) {
+            var self = this; self.gen = true; self.sAns = ''; self.ctrl = new AbortController();
+            fetch(self.api + '/v1/chat/completions', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ messages: messages, max_tokens: self.maxT, temperature: self.temp, top_p: self.topP, repeat_penalty: self.repP, stream: true }),
+                signal: self.ctrl.signal
+            }).then(function(resp) {
+                if (!resp.ok) return resp.text().then(function(t) { throw new Error('HTTP ' + resp.status + ': ' + t); });
+                self.srvOk = true; var reader = resp.body.getReader(), decoder = new TextDecoder('utf-8'), buffer = '', full = '';
+                function pump() { reader.read().then(function(result) {
+                    if (result.done) {
+                        if (full.trim()) { conv.messages.push({ role: 'assistant', content: full }); self.msgs = conv.messages; self.saveConv(); }
+                        self.gen = false; self.sAns = ''; self.ctrl = null;
+                        self.$nextTick(function() { self.goBot(true); if (self.$refs.inp) self.$refs.inp.focus(); });
+                        return;
+                    }
+                    buffer += decoder.decode(result.value, { stream: true }); var lines = buffer.split('\n'); buffer = lines.pop();
+                    for (var i = 0; i < lines.length; i++) { var t = lines[i].trim(); if (!t || t.indexOf('data: ') !== 0) continue; var data = t.slice(6); if (data === '[DONE]') continue;
+                        try { var p = JSON.parse(data); var delta = p.choices && p.choices[0] && p.choices[0].delta && p.choices[0].delta.content;
+                            if (delta) { full += delta; self.sAns = full; self.$nextTick(function() { self.goBot(false); }); }
+                        } catch(e) {}
+                    }
+                    pump();
+                }); }
+                pump();
+            }).catch(function(err) {
+                if (err.name === 'AbortError') {
+                    if (self.sAns) { conv.messages.push({ role: 'assistant', content: self.sAns + '\n\n*[生成已中断]*' }); self.msgs = conv.messages; self.saveConv(); }
+                    self.toast('生成已停止');
+                } else { self.srvOk = false; self.toast('请求失败: ' + err.message); conv.messages.push({ role: 'assistant', content: '⚠️ 请求失败: ' + err.message }); self.msgs = conv.messages; self.saveConv(); }
+                self.gen = false; self.sAns = ''; self.ctrl = null;
+                self.$nextTick(function() { self.goBot(true); if (self.$refs.inp) self.$refs.inp.focus(); });
+            });
+        },
+
+        stop: function() {
+            this.gen = false; this.sAns = '';
+            if (this.ctrl) this.ctrl.abort(); this.ctrl = null;
+            this.$nextTick(function() { if (this.$refs.inp) this.$refs.inp.focus(); }.bind(this));
+        },
+
+        reGen: function(idx) {
+            if (this.gen) return; var c = this.convs.find(function(x) { return x.id === this.curId; }.bind(this)); if (!c) return;
+            c.messages.splice(idx); this.msgs = c.messages; this.saveConv();
+            var apiMsgs = []; if (this.sys.trim()) apiMsgs.push({ role: 'system', content: this.sys.trim() });
+            c.messages.slice(-this.ctx).forEach(function(m) { apiMsgs.push({ role: m.role, content: m.content }); });
+            this.stream(apiMsgs, c);
+        },
+
+        md: function(text) {
+            if (!text) return '';
+            try {
+                var html = marked.parse(text);
+                html = html.replace(/<pre>/g, '<pre><span class="tag is-small is-rounded ccp" style="cursor:pointer" onclick="navigator.clipboard.writeText(this.parentElement.querySelector(\'code\').textContent).then(function(el){return function(){el.textContent=\'✓ 已复制\';setTimeout(function(){el.textContent=\'复制\'},1500)}}(this))">复制</span>');
+                return html;
+            } catch(e) {
+                return text.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+            }
+        },
+
+        doCopy: function(content, idx) {
+            var self = this;
+            navigator.clipboard.writeText(content).then(function() { self.copyI = idx; setTimeout(function() { self.copyI = -1; }, 1500); }).catch(function() { self.toast('复制失败'); });
+        },
+        autoH: function(ta) { ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 180) + 'px'; },
+        goBot: function(smooth) { var c = this.$refs.msgsBox; if (c) c.scrollTo({ top: c.scrollHeight, behavior: smooth ? 'smooth' : 'auto' }); },
+        onScroll: function() { var c = this.$refs.msgsBox; if (c) this.showBot = (c.scrollHeight - c.scrollTop - c.clientHeight) > 200; },
+        toast: function(msg) { var id = Date.now(); this.toasts.push({ id: id, msg: msg }); var self = this; setTimeout(function() { self.toasts = self.toasts.filter(function(t) { return t.id !== id; }); }, 3000); },
+
+        doExport: function() {
+            var c = this.convs.find(function(x) { return x.id === this.curId; }.bind(this));
+            if (!c || c.messages.length === 0) { this.toast('没有可导出的对话'); return; }
+            var md = '# ' + c.title + '\n\n导出时间: ' + new Date().toLocaleString() + '\n\n---\n\n';
+            c.messages.forEach(function(m) { md += (m.role === 'user' ? '## 用户' : '## AI') + '\n\n'; md += m.content + '\n\n---\n\n'; });
+            var blob = new Blob([md], { type: 'text/markdown;charset=utf-8' }); var a = document.createElement('a');
+            a.href = URL.createObjectURL(blob); a.download = 'chat_' + c.title.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_') + '.md'; a.click(); URL.revokeObjectURL(a.href);
+            this.toast('对话已导出');
+        }
+    };
+}
+</script>
+</body>
+</html>
