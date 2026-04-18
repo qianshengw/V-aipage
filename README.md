@@ -5,4 +5,4 @@
 __超轻量__ 适用于简单的llama部署后简单的前端问答功能
 <img width="1918" height="960" alt="image" src="https://github.com/user-attachments/assets/3d359f46-a153-43f9-8b28-b4b933485042" />
 
-（谁不想花4分钟跑一个GGUF后急头白脸的花10分钟构建一个前端呢？）
+（谁不想花4分钟跑一个GGUF后急头白脸的花10分钟构建一个前端呢？【当然，其实，可以用llama自带的前端，所以图一乐】）
